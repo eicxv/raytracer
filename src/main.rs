@@ -5,7 +5,7 @@ mod utility;
 mod vec3;
 use camera::Camera;
 use geometry::hittable::Hittable;
-use geometry::material::{Lambertian, Metal};
+use geometry::material::{Dielectric, Lambertian, Metal};
 use geometry::sphere::Sphere;
 use rand::Rng;
 use ray::Ray;
@@ -34,7 +34,7 @@ fn render(width: u32, height: u32) -> Vec<u8> {
             Vec3::new(0.0, 0.0, -1.0),
             0.5,
             Box::new(Lambertian {
-                albedo: Vec3::new(0.8, 0.3, 0.3),
+                albedo: Vec3::new(0.1, 0.2, 0.5),
             }),
         ),
         Sphere::new(
@@ -49,16 +49,13 @@ fn render(width: u32, height: u32) -> Vec<u8> {
             0.5,
             Box::new(Metal {
                 albedo: Vec3::new(0.8, 0.6, 0.2),
-                roughness: 1.0,
+                roughness: 0.2,
             }),
         ),
         Sphere::new(
             Vec3::new(-1.0, 0.0, -1.0),
             0.5,
-            Box::new(Metal {
-                albedo: Vec3::new(0.8, 0.8, 0.8),
-                roughness: 0.3,
-            }),
+            Box::new(Dielectric { n: 1.5 }),
         ),
     ];
 
