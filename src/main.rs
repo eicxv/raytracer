@@ -26,7 +26,7 @@ fn render(width: u32, height: u32) -> Vec<u8> {
     let look_at = Vec3::new(0.0, 0.0, -1.0);
     let up = Vec3::new(0.0, 1.0, 0.0);
     let focus_distance = (look_from - look_at).length();
-    let aperture = 2.0;
+    let aperture = 0.0;
     let camera = Camera::new(
         look_from,
         look_at,
@@ -56,18 +56,16 @@ fn render(width: u32, height: u32) -> Vec<u8> {
 
 fn color<T: Hittable>(ray: &Ray, scene: &T, depth: i32) -> Vec3 {
     let max_depth = 50;
+    if depth >= max_depth {
+        return Vec3::origin();
+    }
     match scene.hit(ray, (0.0001, f64::INFINITY)) {
-        Some(rec) => {
-            if depth >= max_depth {
-                return Vec3::origin();
+        Some(rec) => match rec.material.scatter(ray, rec) {
+            Some((scattered, attenuation)) => {
+                return attenuation * color(&scattered, scene, depth + 1);
             }
-            match rec.material.scatter(ray, rec) {
-                Some((scattered, attenuation)) => {
-                    return attenuation * color(&scattered, scene, depth + 1);
-                }
-                None => return Vec3::origin(),
-            }
-        }
+            None => return Vec3::origin(),
+        },
         None => (),
     };
 

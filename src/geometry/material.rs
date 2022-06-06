@@ -1,8 +1,6 @@
-use rand::Rng;
-
-use crate::{ray::Ray, vec3::Vec3};
-
 use super::{hittable::HitRecord, scatterable::Scatterable};
+use crate::{ray::Ray, vec3::Vec3};
+use rand::Rng;
 
 #[derive(Clone, Debug)]
 pub struct Lambertian {
@@ -35,7 +33,7 @@ impl Scatterable for Metal {
             record.point,
             reflected + self.roughness * Vec3::random_unit_vector(),
         );
-        match Vec3::dot(reflected, record.normal) >= 0.0 {
+        match Vec3::dot(scattered.direction, record.normal) > 0.0 {
             true => Some((scattered, self.albedo)),
             false => None,
         }
@@ -44,33 +42,34 @@ impl Scatterable for Metal {
 
 impl Scatterable for Dielectric {
     fn scatter(&self, ray: &Ray, record: HitRecord) -> Option<(Ray, Vec3)> {
-        let (outward_normal, ior_ratio, cosine) =
-            match Vec3::dot(ray.direction, record.normal) > 0.0 {
-                true => (
-                    -record.normal,
-                    self.index_of_refraction,
-                    self.index_of_refraction * Vec3::dot(ray.direction.unitize(), record.normal),
-                ),
-                false => (
-                    record.normal,
-                    1.0 / self.index_of_refraction,
-                    -Vec3::dot(ray.direction.unitize(), record.normal),
-                ),
-            };
-
-        let scattered = match ray.direction.refract(outward_normal, ior_ratio) {
-            Some(refracted) => match rand::thread_rng().gen::<f64>() < schlick(cosine, ior_ratio) {
-                true => Vec3::reflect(&ray.direction, record.normal),
-                false => refracted,
-            },
-            None => Vec3::reflect(&ray.direction, record.normal),
+        let (ior_ratio, normal) = if front_face(ray.direction, record.normal) {
+            (self.index_of_refraction, -record.normal)
+        } else {
+            (1.0 / self.index_of_refraction, record.normal)
         };
+
+        let unit_direction = ray.direction.unitize();
+        let cos_theta = -Vec3::dot(unit_direction, normal);
+
+        let scattered = if schlick(cos_theta, ior_ratio) > rand::thread_rng().gen::<f64>() {
+            Vec3::reflect(&ray.direction, normal)
+        } else {
+            match ray.direction.refract(normal, ior_ratio) {
+                Some(refracted) => refracted,
+                None => Vec3::reflect(&ray.direction, normal),
+            }
+        };
+
         let attenuation = Vec3::new(1.0, 1.0, 1.0);
         Some((Ray::new(record.point, scattered), attenuation))
     }
 }
 
-fn schlick(cosine: f64, ior: f64) -> f64 {
-    let r0 = ((1.0 - ior) / (1.0 + ior)).powi(2);
+fn schlick(cosine: f64, ior_ratio: f64) -> f64 {
+    let r0 = ((1.0 - ior_ratio) / (1.0 + ior_ratio)).powi(2);
     r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+}
+
+fn front_face(direction: Vec3, normal: Vec3) -> bool {
+    Vec3::dot(direction, normal) > 0.0
 }
