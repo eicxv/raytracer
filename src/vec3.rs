@@ -1,6 +1,6 @@
 use rand::Rng;
 use std::{
-    f64::consts::PI,
+    f64::consts::TAU,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Range, Sub, SubAssign},
 };
 
@@ -64,7 +64,7 @@ impl Vec3 {
 
     pub fn random_unit_vector() -> Vec3 {
         let mut rng = rand::thread_rng();
-        let phi = rng.gen_range(0.0..2.0 * PI);
+        let phi = rng.gen_range(0.0..TAU);
         let z: f64 = rng.gen_range(-1.0..1.0);
         let r = (1.0 - z * z).sqrt();
         Vec3 {
@@ -419,4 +419,12 @@ fn test_dot() {
     let b = Vec3::new(1.0, 3.0, 0.5);
     assert_approx_eq!(Vec3::dot(a, b), -1.5, 1e-3f64);
     assert_approx_eq!(Vec3::dot(b, a), -1.5, 1e-3f64);
+}
+
+#[test]
+fn test_cross() {
+    let a = Vec3::new(3.0, -3.0, 1.0);
+    let b = Vec3::new(4.0, 9.0, 2.0);
+    let res = Vec3::new(-15.0, -2.0, 39.0);
+    vec3_assert_approx_eq!(Vec3::cross(a, b), res, 1e-3f64);
 }
