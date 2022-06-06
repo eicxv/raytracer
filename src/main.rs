@@ -15,58 +15,19 @@ use vec3::Vec3;
 fn main() {
     let size = (200, 100);
     let buffer = render(size.0, size.1);
-    let path = Path::new("./renders/img-3.png");
+    let path = Path::new("./renders/img.png");
     save_png(path, size, &buffer);
 }
 
 fn render(width: u32, height: u32) -> Vec<u8> {
     let mut rng = rand::thread_rng();
     let mut buffer = Vec::with_capacity(width as usize * height as usize * 3);
-    let camera = Camera {
-        lower_left_corner: Vec3::new(-2.0, -1.0, -1.0),
-        horizontal: Vec3::new(4.0, 0.0, 0.0),
-        vertical: Vec3::new(0.0, 2.0, 0.0),
-        origin: Vec3::origin(),
-    };
+    let look_from = Vec3::new(-2.0, 2.0, 1.0);
+    let look_at = Vec3::new(0.0, 0.0, -1.0);
+    let up = Vec3::new(0.0, 1.0, 0.0);
+    let camera = Camera::new(look_from, look_at, up, 25.0, width as f64 / height as f64);
     let ns = 100;
-    let world = [
-        Sphere::new(
-            Vec3::new(0.0, 0.0, -1.0),
-            0.5,
-            Box::new(Lambertian {
-                albedo: Vec3::new(0.1, 0.2, 0.5),
-            }),
-        ),
-        Sphere::new(
-            Vec3::new(0.0, -100.5, -1.0),
-            100.0,
-            Box::new(Lambertian {
-                albedo: Vec3::new(0.8, 0.8, 0.0),
-            }),
-        ),
-        Sphere::new(
-            Vec3::new(1.0, 0.0, -1.0),
-            0.5,
-            Box::new(Metal {
-                albedo: Vec3::new(0.8, 0.6, 0.2),
-                roughness: 0.2,
-            }),
-        ),
-        Sphere::new(
-            Vec3::new(-1.0, 0.0, -1.0),
-            0.5,
-            Box::new(Dielectric {
-                index_of_refraction: 1.5,
-            }),
-        ),
-        Sphere::new(
-            Vec3::new(-1.0, 0.0, -1.0),
-            -0.45,
-            Box::new(Dielectric {
-                index_of_refraction: 1.5,
-            }),
-        ),
-    ];
+    let world = create_world();
 
     for j in (0..height).rev() {
         for i in 0..width {
@@ -110,6 +71,47 @@ fn to_srgb_bytes(v: Vec3) -> [u8; 3] {
         (v.x.sqrt() * 255.99) as u8,
         (v.y.sqrt() * 255.99) as u8,
         (v.z.sqrt() * 255.99) as u8,
+    ]
+}
+
+fn create_world() -> [Sphere; 5] {
+    [
+        Sphere::new(
+            Vec3::new(0.0, 0.0, -1.0),
+            0.5,
+            Box::new(Lambertian {
+                albedo: Vec3::new(0.1, 0.2, 0.5),
+            }),
+        ),
+        Sphere::new(
+            Vec3::new(0.0, -100.5, -1.0),
+            100.0,
+            Box::new(Lambertian {
+                albedo: Vec3::new(0.8, 0.8, 0.0),
+            }),
+        ),
+        Sphere::new(
+            Vec3::new(1.0, 0.0, -1.0),
+            0.5,
+            Box::new(Metal {
+                albedo: Vec3::new(0.8, 0.6, 0.2),
+                roughness: 0.2,
+            }),
+        ),
+        Sphere::new(
+            Vec3::new(-1.0, 0.0, -1.0),
+            0.5,
+            Box::new(Dielectric {
+                index_of_refraction: 1.5,
+            }),
+        ),
+        Sphere::new(
+            Vec3::new(-1.0, 0.0, -1.0),
+            -0.45,
+            Box::new(Dielectric {
+                index_of_refraction: 1.5,
+            }),
+        ),
     ]
 }
 
