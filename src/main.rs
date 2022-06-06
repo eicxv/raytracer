@@ -22,10 +22,20 @@ fn main() {
 fn render(width: u32, height: u32) -> Vec<u8> {
     let mut rng = rand::thread_rng();
     let mut buffer = Vec::with_capacity(width as usize * height as usize * 3);
-    let look_from = Vec3::new(-2.0, 2.0, 1.0);
+    let look_from = Vec3::new(3.0, 3.0, 2.0);
     let look_at = Vec3::new(0.0, 0.0, -1.0);
     let up = Vec3::new(0.0, 1.0, 0.0);
-    let camera = Camera::new(look_from, look_at, up, 25.0, width as f64 / height as f64);
+    let focus_distance = (look_from - look_at).length();
+    let aperture = 2.0;
+    let camera = Camera::new(
+        look_from,
+        look_at,
+        up,
+        20.0,
+        width as f64 / height as f64,
+        aperture,
+        focus_distance,
+    );
     let ns = 100;
     let world = create_world();
 
