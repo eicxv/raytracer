@@ -15,7 +15,7 @@ use vec3::Vec3;
 fn main() {
     let size = (200, 100);
     let buffer = render(size.0, size.1);
-    let path = Path::new("./renders/img.png");
+    let path = Path::new("./renders/img-3.png");
     save_png(path, size, &buffer);
 }
 
@@ -55,7 +55,16 @@ fn render(width: u32, height: u32) -> Vec<u8> {
         Sphere::new(
             Vec3::new(-1.0, 0.0, -1.0),
             0.5,
-            Box::new(Dielectric { n: 1.5 }),
+            Box::new(Dielectric {
+                index_of_refraction: 1.5,
+            }),
+        ),
+        Sphere::new(
+            Vec3::new(-1.0, 0.0, -1.0),
+            -0.45,
+            Box::new(Dielectric {
+                index_of_refraction: 1.5,
+            }),
         ),
     ];
 

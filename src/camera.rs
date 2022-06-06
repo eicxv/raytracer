@@ -12,7 +12,8 @@ impl Camera {
         let (u, v) = uv;
         Ray::new(
             self.origin,
-            self.lower_left_corner + u * self.horizontal + v * self.vertical - self.origin,
+            (self.lower_left_corner + u * self.horizontal + v * self.vertical - self.origin)
+                .unitize(),
         )
     }
 }

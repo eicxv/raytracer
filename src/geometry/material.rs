@@ -1,3 +1,5 @@
+use rand::Rng;
+
 use crate::{ray::Ray, vec3::Vec3};
 
 use super::{hittable::HitRecord, scatterable::Scatterable};
@@ -15,7 +17,7 @@ pub struct Metal {
 
 #[derive(Clone, Debug)]
 pub struct Dielectric {
-    pub n: f64,
+    pub index_of_refraction: f64,
 }
 
 impl Scatterable for Lambertian {
@@ -42,15 +44,33 @@ impl Scatterable for Metal {
 
 impl Scatterable for Dielectric {
     fn scatter(&self, ray: &Ray, record: HitRecord) -> Option<(Ray, Vec3)> {
-        let (outward_normal, n_ratio) = match Vec3::dot(ray.direction, record.normal) > 0.0 {
-            true => (-record.normal, self.n),
-            false => (record.normal, 1.0 / self.n),
-        };
+        let (outward_normal, ior_ratio, cosine) =
+            match Vec3::dot(ray.direction, record.normal) > 0.0 {
+                true => (
+                    -record.normal,
+                    self.index_of_refraction,
+                    self.index_of_refraction * Vec3::dot(ray.direction.unitize(), record.normal),
+                ),
+                false => (
+                    record.normal,
+                    1.0 / self.index_of_refraction,
+                    -Vec3::dot(ray.direction.unitize(), record.normal),
+                ),
+            };
 
+        let scattered = match ray.direction.refract(outward_normal, ior_ratio) {
+            Some(refracted) => match rand::thread_rng().gen::<f64>() < schlick(cosine, ior_ratio) {
+                true => Vec3::reflect(&ray.direction, record.normal),
+                false => refracted,
+            },
+            None => Vec3::reflect(&ray.direction, record.normal),
+        };
         let attenuation = Vec3::new(1.0, 1.0, 1.0);
-        match ray.direction.refract(outward_normal, n_ratio) {
-            Some(refracted) => Some((Ray::new(record.point, refracted), attenuation)),
-            None => None,
-        }
+        Some((Ray::new(record.point, scattered), attenuation))
     }
+}
+
+fn schlick(cosine: f64, ior: f64) -> f64 {
+    let r0 = ((1.0 - ior) / (1.0 + ior)).powi(2);
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }

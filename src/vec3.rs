@@ -78,12 +78,12 @@ impl Vec3 {
         return *self - 2.0 * Vec3::dot(*self, normal) * normal;
     }
 
-    pub fn refract(&self, normal: Vec3, n_ratio: f64) -> Option<Vec3> {
+    pub fn refract(&self, normal: Vec3, ior_ratio: f64) -> Option<Vec3> {
         let v = self.unitize();
         let dt = Vec3::dot(v, normal);
-        let disc = 1.0 - n_ratio * n_ratio * (1.0 - dt * dt);
+        let disc = 1.0 - ior_ratio * ior_ratio * (1.0 - dt * dt);
         match disc > 0.0 {
-            true => Some(n_ratio * (v - normal * dt) - normal * disc.sqrt()),
+            true => Some(ior_ratio * (v - normal * dt) - normal * disc.sqrt()),
             false => None,
         }
     }
