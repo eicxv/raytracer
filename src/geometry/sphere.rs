@@ -1,8 +1,10 @@
+use super::aabb::AxisAlignedBoundingBox;
 use super::hittable::{HitRecord, Hittable};
 use super::scatterable::Scatterable;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
+#[derive(Debug)]
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
@@ -54,6 +56,12 @@ impl Hittable for Sphere {
             });
         }
         None
+    }
+    fn bounding_box(&self) -> AxisAlignedBoundingBox {
+        AxisAlignedBoundingBox {
+            min: self.center - self.radius,
+            max: self.center + self.radius,
+        }
     }
 }
 

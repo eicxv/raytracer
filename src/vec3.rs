@@ -1,7 +1,9 @@
 use rand::Rng;
 use std::{
     f64::consts::TAU,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Range, Sub, SubAssign},
+    ops::{
+        Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Range, Sub, SubAssign,
+    },
 };
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
@@ -85,6 +87,29 @@ impl Vec3 {
         match disc >= 0.0 {
             true => Some(ior_ratio * (incident - normal * dt) - normal * disc.sqrt()),
             false => None,
+        }
+    }
+}
+
+impl Index<usize> for Vec3 {
+    type Output = f64;
+    fn index(&self, i: usize) -> &f64 {
+        match i {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("unknown field: {}", i),
+        }
+    }
+}
+
+impl IndexMut<usize> for Vec3 {
+    fn index_mut(&mut self, i: usize) -> &mut f64 {
+        match i {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("unknown field: {}", i),
         }
     }
 }

@@ -4,6 +4,7 @@ mod ray;
 mod utility;
 mod vec3;
 use camera::Camera;
+use geometry::bvh::Bvh;
 use geometry::hittable::Hittable;
 use geometry::material::{Dielectric, Lambertian, Metal};
 use geometry::sphere::Sphere;
@@ -12,6 +13,7 @@ use ray::Ray;
 use std::path::Path;
 use utility::lerp;
 use vec3::Vec3;
+
 fn main() {
     let size = (200, 100);
     let buffer = render(size.0, size.1);
@@ -20,7 +22,6 @@ fn main() {
 }
 
 fn render(width: u32, height: u32) -> Vec<u8> {
-    let mut rng = rand::thread_rng();
     let mut buffer = Vec::with_capacity(width as usize * height as usize * 3);
     let look_from = Vec3::new(3.0, 3.0, 2.0);
     let look_at = Vec3::new(0.0, 0.0, -1.0);
@@ -38,7 +39,9 @@ fn render(width: u32, height: u32) -> Vec<u8> {
     );
     let ns = 100;
     let world = create_world();
+    let bvh = Bvh::new(world);
 
+    let mut rng = rand::thread_rng();
     for j in (0..height).rev() {
         for i in 0..width {
             let mut col = Vec3::origin();
@@ -46,7 +49,7 @@ fn render(width: u32, height: u32) -> Vec<u8> {
                 let u = (i as f64 + rng.gen::<f64>()) / width as f64;
                 let v = (j as f64 + rng.gen::<f64>()) / height as f64;
                 let r = camera.get_ray((u, v));
-                col += color(&r, &world.as_slice(), 0) * 1.0 / (ns as f64);
+                col += color(&r, &bvh, 0) * 1.0 / (ns as f64);
             }
             buffer.extend_from_slice(&to_srgb_bytes(col));
         }
@@ -82,44 +85,44 @@ fn to_srgb_bytes(v: Vec3) -> [u8; 3] {
     ]
 }
 
-fn create_world() -> [Sphere; 5] {
-    [
-        Sphere::new(
+fn create_world() -> Vec<Box<dyn Hittable>> {
+    vec![
+        Box::new(Sphere::new(
             Vec3::new(0.0, 0.0, -1.0),
             0.5,
             Box::new(Lambertian {
                 albedo: Vec3::new(0.1, 0.2, 0.5),
             }),
-        ),
-        Sphere::new(
+        )),
+        Box::new(Sphere::new(
             Vec3::new(0.0, -100.5, -1.0),
             100.0,
             Box::new(Lambertian {
                 albedo: Vec3::new(0.8, 0.8, 0.0),
             }),
-        ),
-        Sphere::new(
+        )),
+        Box::new(Sphere::new(
             Vec3::new(1.0, 0.0, -1.0),
             0.5,
             Box::new(Metal {
                 albedo: Vec3::new(0.8, 0.6, 0.2),
                 roughness: 0.2,
             }),
-        ),
-        Sphere::new(
+        )),
+        Box::new(Sphere::new(
             Vec3::new(-1.0, 0.0, -1.0),
             0.5,
             Box::new(Dielectric {
                 index_of_refraction: 1.5,
             }),
-        ),
-        Sphere::new(
+        )),
+        Box::new(Sphere::new(
             Vec3::new(-1.0, 0.0, -1.0),
             -0.45,
             Box::new(Dielectric {
                 index_of_refraction: 1.5,
             }),
-        ),
+        )),
     ]
 }
 
