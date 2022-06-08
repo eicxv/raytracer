@@ -1,6 +1,6 @@
-use super::aabb::AxisAlignedBoundingBox;
 use super::hittable::{HitRecord, Hittable};
-use super::scatterable::Scatterable;
+use crate::bvh::aabb::AxisAlignedBoundingBox;
+use crate::material::scatterable::Scatterable;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 

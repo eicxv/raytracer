@@ -1,5 +1,6 @@
-use super::{aabb::AxisAlignedBoundingBox, scatterable::Scatterable};
-use crate::{ray::Ray, vec3::Vec3};
+use crate::{
+    bvh::aabb::AxisAlignedBoundingBox, material::scatterable::Scatterable, ray::Ray, vec3::Vec3,
+};
 
 pub struct HitRecord<'a> {
     pub t: f64,
@@ -36,7 +37,10 @@ where
     }
 }
 
-impl Hittable for Vec<Box<dyn Hittable>> {
+impl<T> Hittable for Vec<T>
+where
+    T: Hittable,
+{
     fn hit(&self, ray: &Ray, t_range: (f64, f64)) -> Option<HitRecord> {
         let mut closest = t_range.1;
         let mut record: Option<HitRecord> = None;
@@ -52,7 +56,15 @@ impl Hittable for Vec<Box<dyn Hittable>> {
         record
     }
     fn bounding_box(&self) -> AxisAlignedBoundingBox {
-        let bounding_boxes = self.into_iter().map(|hittable| hittable.bounding_box());
-        AxisAlignedBoundingBox::from_boxes(bounding_boxes)
+        self.as_slice().bounding_box()
+    }
+}
+
+impl Hittable for Box<dyn Hittable> {
+    fn hit(&self, ray: &Ray, t_range: (f64, f64)) -> Option<HitRecord> {
+        (**self).hit(ray, t_range)
+    }
+    fn bounding_box(&self) -> AxisAlignedBoundingBox {
+        (**self).bounding_box()
     }
 }

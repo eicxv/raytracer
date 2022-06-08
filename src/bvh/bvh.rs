@@ -1,11 +1,9 @@
-use rand::Rng;
-
-use crate::ray::Ray;
-
-use super::{
-    aabb::AxisAlignedBoundingBox,
-    hittable::{HitRecord, Hittable},
+use super::aabb::AxisAlignedBoundingBox;
+use crate::{
+    ray::Ray,
+    shape::hittable::{HitRecord, Hittable},
 };
+use rand::Rng;
 
 #[derive(Debug)]
 pub struct Bvh {
