@@ -29,7 +29,13 @@ impl Scatterable for Dielectric {
         };
 
         let attenuation = Vec3::new(1.0, 1.0, 1.0);
-        Some((Ray::new(record.point, scattered), attenuation))
+        Some((
+            Ray {
+                origin: record.point,
+                direction: scattered,
+            },
+            attenuation,
+        ))
     }
 }
 

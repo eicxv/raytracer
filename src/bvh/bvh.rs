@@ -4,6 +4,7 @@ use crate::{
     shape::hittable::{HitRecord, Hittable},
 };
 use rand::Rng;
+use std::ops::Range;
 
 #[derive(Debug)]
 pub struct Bvh {
@@ -46,14 +47,14 @@ impl Bvh {
 }
 
 impl Hittable for Bvh {
-    fn hit(&self, ray: &Ray, t_range: (f64, f64)) -> Option<HitRecord> {
-        if !self.b_box.hit(ray, t_range) {
+    fn hit(&self, ray: &Ray, t_range: Range<f64>) -> Option<HitRecord> {
+        if !self.b_box.hit(ray, t_range.clone()) {
             return None;
         }
 
         match &self.contents {
-            BvhContents::Node { left, right } => match left.hit(ray, t_range) {
-                Some(rec_left) => match right.hit(ray, (t_range.0, rec_left.t)) {
+            BvhContents::Node { left, right } => match left.hit(ray, t_range.clone()) {
+                Some(rec_left) => match right.hit(ray, t_range.start..rec_left.t) {
                     Some(rec_right) => Some(rec_right),
                     None => Some(rec_left),
                 },

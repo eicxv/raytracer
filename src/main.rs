@@ -1,5 +1,6 @@
 use rand::Rng;
 use raytrace_rust::shape::hittable::Hittable;
+use std::f64::INFINITY;
 use std::path::Path;
 use std::time::Instant;
 
@@ -47,7 +48,7 @@ fn color<T: Hittable>(ray: &Ray, scene: &T, depth: i32) -> Vec3 {
     if depth >= max_depth {
         return Vec3::origin();
     }
-    match scene.hit(ray, (0.0001, f64::INFINITY)) {
+    match scene.hit(ray, 0.0001..INFINITY) {
         Some(rec) => match rec.material.scatter(ray, rec) {
             Some((scattered, attenuation)) => {
                 return attenuation * color(&scattered, scene, depth + 1);

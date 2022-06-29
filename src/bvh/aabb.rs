@@ -1,6 +1,7 @@
 use std::{
     f64::{INFINITY, NEG_INFINITY},
     mem::swap,
+    ops::Range,
 };
 
 use crate::{ray::Ray, vec3::Vec3};
@@ -12,8 +13,8 @@ pub struct AxisAlignedBoundingBox {
 }
 
 impl AxisAlignedBoundingBox {
-    pub fn hit(&self, ray: &Ray, t_range: (f64, f64)) -> bool {
-        let (mut t_min, mut t_max) = t_range;
+    pub fn hit(&self, ray: &Ray, t_range: Range<f64>) -> bool {
+        let (mut t_min, mut t_max) = (t_range.start, t_range.end);
         for i in 0..3 {
             let inv_d = 1.0 / ray.direction[i];
             let mut t0 = (self.min[i] - ray.origin[i]) * inv_d;
@@ -62,14 +63,11 @@ fn aabb_hit() {
         min: Vec3::new(NEG_INFINITY, NEG_INFINITY, NEG_INFINITY),
         max: Vec3::new(INFINITY, INFINITY, INFINITY),
     };
-    let hit1 = aabb1.hit(
-        &Ray::new(Vec3::origin(), Vec3::new(1.0, 1.0, 1.0)),
-        (NEG_INFINITY, INFINITY),
-    );
-    let hit2 = aabb2.hit(
-        &Ray::new(Vec3::origin(), Vec3::new(1.0, 1.0, 1.0)),
-        (0.0, 1.0),
-    );
+    let dir = Vec3::new(1.0, 1.0, 1.0);
+    let origin = Vec3::origin();
+
+    let hit1 = aabb1.hit(&Ray::new(origin, dir), NEG_INFINITY..INFINITY);
+    let hit2 = aabb2.hit(&Ray::new(origin, dir), 0.0..1.0);
     println!("{}, {}", hit1, hit2);
     assert!(hit1 == false);
     assert!(hit2 == true);
@@ -85,11 +83,11 @@ fn aabb_hit_infinite() {
     let origin = Vec3::origin();
     let direction = Vec3::new(1.0, 1.0, 1.0);
     let mut ray = Ray { origin, direction };
-    let mut hit = aabb.hit(&ray, (0.0, 1.0));
+    let mut hit = aabb.hit(&ray, 0.0..1.0);
     assert!(hit == true);
     ray.origin = Vec3::new(1.0, 0.0, 0.0);
     ray.direction = Vec3::new(-1.0, 0.0, 0.0);
-    hit = aabb.hit(&ray, (0.0, 1.0));
+    hit = aabb.hit(&ray, 0.0..1.0);
     assert!(hit == true);
 }
 
@@ -103,10 +101,10 @@ fn aabb_hit_neg_infinite() {
     let origin = Vec3::origin();
     let direction = Vec3::new(1.0, 1.0, 1.0);
     let mut ray = Ray { origin, direction };
-    let mut hit = aabb.hit(&ray, (0.0, 1.0));
+    let mut hit = aabb.hit(&ray, 0.0..1.0);
     assert!(hit == false);
     ray.origin = Vec3::new(1.0, 0.0, 0.0);
     ray.direction = Vec3::new(-1.0, 0.0, 0.0);
-    hit = aabb.hit(&ray, (0.0, 1.0));
+    hit = aabb.hit(&ray, 0.0..1.0);
     assert!(hit == false);
 }
