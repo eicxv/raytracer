@@ -6,6 +6,18 @@ use std::{
     },
 };
 
+#[cfg(debug_assertions)]
+use assert_approx_eq::assert_approx_eq;
+
+macro_rules! debug_assert_approx_eq {
+    ($a:expr, $b:expr, $eps:expr) => {{
+        #[cfg(debug_assertions)]
+        {
+            assert_approx_eq!($a, $b, $eps);
+        }
+    }};
+}
+
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Vec3 {
     pub x: f64,
@@ -26,19 +38,23 @@ impl Vec3 {
         }
     }
 
+    pub fn has_nan(&self) -> bool {
+        f64::is_nan(self.x) || f64::is_nan(self.y) || f64::is_nan(self.z)
+    }
+
     pub fn abs(self) -> Vec3 {
         Vec3::new(self.x.abs(), self.y.abs(), self.z.abs())
     }
 
-    pub fn dot(a: Vec3, b: Vec3) -> f64 {
-        a.x * b.x + a.y * b.y + a.z * b.z
+    pub fn dot(self, v: Vec3) -> f64 {
+        self.x * v.x + self.y * v.y + self.z * v.z
     }
 
-    pub fn cross(a: Vec3, b: Vec3) -> Vec3 {
+    pub fn cross(self, v: Vec3) -> Vec3 {
         Vec3::new(
-            a.y * b.z - a.z * b.y,
-            a.z * b.x - a.x * b.z,
-            a.x * b.y - a.y * b.x,
+            self.y * v.z - self.z * v.y,
+            self.z * v.x - self.x * v.z,
+            self.x * v.y - self.y * v.x,
         )
     }
 
@@ -52,7 +68,28 @@ impl Vec3 {
 
     pub fn unitize(self) -> Vec3 {
         let len = self.length();
+
+        debug_assert_ne!(len, 0.0);
+
         self / len
+    }
+
+    pub fn reflect(&self, normal: Vec3) -> Vec3 {
+        debug_assert_approx_eq!(normal.length(), 1.0, 1e-3f64);
+
+        return *self - 2.0 * Vec3::dot(*self, normal) * normal;
+    }
+
+    pub fn refract(&self, normal: Vec3, ior_ratio: f64) -> Option<Vec3> {
+        debug_assert_approx_eq!(self.length(), 1.0, 1e-3f64);
+        debug_assert_approx_eq!(normal.length(), 1.0, 1e-3f64);
+
+        let dt = self.dot(normal);
+        let disc = 1.0 - ior_ratio * ior_ratio * (1.0 - dt * dt);
+        match disc >= 0.0 {
+            true => Some(ior_ratio * (*self - normal * dt) - normal * disc.sqrt()),
+            false => None,
+        }
     }
 
     pub fn random(range: Range<f64>) -> Vec3 {
@@ -73,20 +110,6 @@ impl Vec3 {
             x: r * phi.cos(),
             y: r * phi.sin(),
             z,
-        }
-    }
-
-    pub fn reflect(&self, normal: Vec3) -> Vec3 {
-        return *self - 2.0 * Vec3::dot(*self, normal) * normal;
-    }
-
-    pub fn refract(&self, normal: Vec3, ior_ratio: f64) -> Option<Vec3> {
-        let incident = self.unitize();
-        let dt = Vec3::dot(incident, normal);
-        let disc = 1.0 - ior_ratio * ior_ratio * (1.0 - dt * dt);
-        match disc >= 0.0 {
-            true => Some(ior_ratio * (incident - normal * dt) - normal * disc.sqrt()),
-            false => None,
         }
     }
 }
@@ -298,11 +321,8 @@ impl Div<f64> for Vec3 {
     type Output = Vec3;
 
     fn div(self, rhs: f64) -> Vec3 {
-        Vec3 {
-            x: self.x / rhs,
-            y: self.y / rhs,
-            z: self.z / rhs,
-        }
+        let reciprocal = 1.0 / rhs;
+        self * reciprocal
     }
 }
 
@@ -328,128 +348,218 @@ impl DivAssign<Vec3> for Vec3 {
 
 impl DivAssign<f64> for Vec3 {
     fn div_assign(&mut self, rhs: f64) {
-        self.x /= rhs;
-        self.y /= rhs;
-        self.z /= rhs;
+        let reciprocal = 1.0 / rhs;
+        *self *= reciprocal;
     }
 }
 
 #[cfg(test)]
-use assert_approx_eq::assert_approx_eq;
+mod tests {
+    use super::*;
+    use assert_approx_eq::assert_approx_eq;
+    use std::f64::consts::PI;
 
-#[cfg(test)]
-macro_rules! vec3_assert_approx_eq {
-    ($a: expr, $b: expr, $diff: expr) => {{
-        assert_approx_eq!($a.x, $b.x, $diff);
-        assert_approx_eq!($a.y, $b.y, $diff);
-        assert_approx_eq!($a.z, $b.z, $diff);
-    }};
-}
+    macro_rules! vec3_assert_approx_eq {
+        ($a: expr, $b: expr, $diff: expr) => {{
+            assert_approx_eq!($a.x, $b.x, $diff);
+            assert_approx_eq!($a.y, $b.y, $diff);
+            assert_approx_eq!($a.z, $b.z, $diff);
+        }};
+    }
 
-#[test]
-fn test_add() {
-    let mut a = Vec3::new(0.0, 0.2, 1.0);
-    let b = Vec3::new(0.1, 0.1, 1.1);
-    let res = Vec3::new(0.1, 0.3, 2.1);
-    vec3_assert_approx_eq!(a + b, res, 1e-3f64);
+    #[test]
+    fn has_nan() {
+        assert!(!Vec3::new(0.0, 0.2, 1.0).has_nan());
+        assert!(Vec3::new(f64::NAN, 0.2, 1.0).has_nan());
+        assert!(Vec3::new(f64::NAN, f64::NAN, 1.0).has_nan());
+        assert!(Vec3::new(f64::NAN, f64::NAN, f64::NAN).has_nan());
+    }
 
-    a += b;
-    vec3_assert_approx_eq!(a, res, 1e-3f64);
-}
+    #[test]
+    fn add() {
+        let mut a = Vec3::new(0.0, 0.2, 1.0);
+        let b = Vec3::new(0.1, 0.1, 1.1);
+        let res = Vec3::new(0.1, 0.3, 2.1);
+        vec3_assert_approx_eq!(a + b, res, 1e-3f64);
 
-#[test]
-fn test_add_float() {
-    let mut a = Vec3::new(0.0, 0.2, 1.0);
-    let b = 0.5;
-    let res = Vec3::new(0.5, 0.7, 1.5);
-    vec3_assert_approx_eq!(a + b, res, 1e-3f64);
-    vec3_assert_approx_eq!(b + a, res, 1e-3f64);
+        a += b;
+        vec3_assert_approx_eq!(a, res, 1e-3f64);
+    }
 
-    a += b;
-    vec3_assert_approx_eq!(a, res, 1e-3f64);
-}
+    #[test]
+    fn add_scalar() {
+        let mut a = Vec3::new(0.0, 0.2, 1.0);
+        let b = 0.5;
+        let res = Vec3::new(0.5, 0.7, 1.5);
+        vec3_assert_approx_eq!(a + b, res, 1e-3f64);
+        vec3_assert_approx_eq!(b + a, res, 1e-3f64);
 
-#[test]
-fn test_sub() {
-    let mut a = Vec3::new(0.0, 0.2, 1.0);
-    let b = Vec3::new(0.1, 0.1, 1.1);
-    let res = Vec3::new(-0.1, 0.1, -0.1);
-    vec3_assert_approx_eq!(a - b, res, 1e-3f64);
+        a += b;
+        vec3_assert_approx_eq!(a, res, 1e-3f64);
+    }
 
-    a -= b;
-    vec3_assert_approx_eq!(a, res, 1e-3f64);
-}
+    #[test]
+    fn sub() {
+        let mut a = Vec3::new(0.0, 0.2, 1.0);
+        let b = Vec3::new(0.1, 0.1, 1.1);
+        let res = Vec3::new(-0.1, 0.1, -0.1);
+        vec3_assert_approx_eq!(a - b, res, 1e-3f64);
 
-#[test]
-fn test_sub_float() {
-    let mut a = Vec3::new(0.0, 0.2, 1.0);
-    let b = 0.5;
-    let res = Vec3::new(-0.5, -0.3, 0.5);
-    vec3_assert_approx_eq!(a - b, res, 1e-3f64);
-    vec3_assert_approx_eq!(b - a, -res, 1e-3f64);
+        a -= b;
+        vec3_assert_approx_eq!(a, res, 1e-3f64);
+    }
 
-    a -= b;
-    vec3_assert_approx_eq!(a, res, 1e-3f64);
-}
+    #[test]
+    fn sub_scalar() {
+        let mut a = Vec3::new(0.0, 0.2, 1.0);
+        let b = 0.5;
+        let res = Vec3::new(-0.5, -0.3, 0.5);
+        vec3_assert_approx_eq!(a - b, res, 1e-3f64);
+        vec3_assert_approx_eq!(b - a, -res, 1e-3f64);
 
-#[test]
-fn test_mul() {
-    let mut a = Vec3::new(0.0, -0.2, 1.0);
-    let b = Vec3::new(1.0, 3.0, 1.1);
-    let res = Vec3::new(0.0, -0.6, 1.1);
-    vec3_assert_approx_eq!(a * b, res, 1e-3f64);
+        a -= b;
+        vec3_assert_approx_eq!(a, res, 1e-3f64);
+    }
 
-    a *= b;
-    vec3_assert_approx_eq!(a, res, 1e-3f64);
-}
+    #[test]
+    fn mul() {
+        let mut a = Vec3::new(0.0, -0.2, 1.0);
+        let b = Vec3::new(1.0, 3.0, 1.1);
+        let res = Vec3::new(0.0, -0.6, 1.1);
+        vec3_assert_approx_eq!(a * b, res, 1e-3f64);
 
-#[test]
-fn test_mul_float() {
-    let mut a = Vec3::new(0.0, -0.2, 1.0);
-    let b = 0.5;
-    let res = Vec3::new(0.0, -0.1, 0.5);
-    vec3_assert_approx_eq!(a * b, res, 1e-3f64);
+        a *= b;
+        vec3_assert_approx_eq!(a, res, 1e-3f64);
+    }
 
-    a *= b;
-    vec3_assert_approx_eq!(a, res, 1e-3f64);
-}
+    #[test]
+    fn mul_scalar() {
+        let mut a = Vec3::new(0.0, -0.2, 1.0);
+        let b = 0.5;
+        let res = Vec3::new(0.0, -0.1, 0.5);
+        vec3_assert_approx_eq!(a * b, res, 1e-3f64);
 
-#[test]
-fn test_div() {
-    let mut a = Vec3::new(0.0, -1.0, 2.5);
-    let b = Vec3::new(1.0, 3.0, 0.5);
-    let res = Vec3::new(0.0, -1.0 / 3.0, 5.0);
-    vec3_assert_approx_eq!(a / b, res, 1e-3f64);
+        a *= b;
+        vec3_assert_approx_eq!(a, res, 1e-3f64);
+    }
 
-    a /= b;
-    vec3_assert_approx_eq!(a, res, 1e-3f64);
-}
+    #[test]
+    fn div() {
+        let mut a = Vec3::new(0.0, -1.0, 2.5);
+        let b = Vec3::new(1.0, 3.0, 0.5);
+        let res = Vec3::new(0.0, -1.0 / 3.0, 5.0);
+        vec3_assert_approx_eq!(a / b, res, 1e-3f64);
 
-#[test]
-fn test_div_float() {
-    let mut a = Vec3::new(2.0, -0.2, 1.0);
-    let b = 0.5;
-    let res1 = Vec3::new(4.0, -0.4, 2.0);
-    let res2 = Vec3::new(0.25, -2.5, 0.5);
-    vec3_assert_approx_eq!(a / b, res1, 1e-3f64);
-    vec3_assert_approx_eq!(b / a, res2, 1e-3f64);
+        a /= b;
+        vec3_assert_approx_eq!(a, res, 1e-3f64);
+    }
 
-    a /= b;
-    vec3_assert_approx_eq!(a, res1, 1e-3f64);
-}
+    #[test]
+    fn div_scalar() {
+        let mut a = Vec3::new(2.0, -0.2, 1.0);
+        let b = 0.5;
+        let res1 = Vec3::new(4.0, -0.4, 2.0);
+        let res2 = Vec3::new(0.25, -2.5, 0.5);
+        vec3_assert_approx_eq!(a / b, res1, 1e-3f64);
+        vec3_assert_approx_eq!(b / a, res2, 1e-3f64);
 
-#[test]
-fn test_dot() {
-    let a = Vec3::new(0.0, -1.0, 3.0);
-    let b = Vec3::new(1.0, 3.0, 0.5);
-    assert_approx_eq!(Vec3::dot(a, b), -1.5, 1e-3f64);
-    assert_approx_eq!(Vec3::dot(b, a), -1.5, 1e-3f64);
-}
+        a /= b;
+        vec3_assert_approx_eq!(a, res1, 1e-3f64);
+    }
 
-#[test]
-fn test_cross() {
-    let a = Vec3::new(3.0, -3.0, 1.0);
-    let b = Vec3::new(4.0, 9.0, 2.0);
-    let res = Vec3::new(-15.0, -2.0, 39.0);
-    vec3_assert_approx_eq!(Vec3::cross(a, b), res, 1e-3f64);
+    #[test]
+    fn index() {
+        let v = Vec3::new(2.0, -2.2, 0.0);
+        assert_eq!(v.x, v[0]);
+        assert_eq!(v.y, v[1]);
+        assert_eq!(v.z, v[2]);
+    }
+
+    #[test]
+    fn dot() {
+        let a = Vec3::new(0.0, -1.0, 3.0);
+        let b = Vec3::new(1.0, 3.0, 0.5);
+        assert_approx_eq!(Vec3::dot(a, b), -1.5, 1e-3f64);
+        assert_approx_eq!(Vec3::dot(b, a), -1.5, 1e-3f64);
+    }
+
+    #[test]
+    fn cross() {
+        let a = Vec3::new(3.0, -3.0, 1.0);
+        let b = Vec3::new(4.0, 9.0, 2.0);
+        let res = Vec3::new(-15.0, -2.0, 39.0);
+        vec3_assert_approx_eq!(Vec3::cross(a, b), res, 1e-3f64);
+    }
+
+    #[test]
+    fn abs() {
+        vec3_assert_approx_eq!(
+            Vec3::new(-3.0, 0.0, 1.0).abs(),
+            Vec3::new(3.0, 0.0, 1.0),
+            1e-3f64
+        );
+        vec3_assert_approx_eq!(
+            Vec3::new(-3.0, -5.0, -0.5).abs(),
+            Vec3::new(3.0, 5.0, 0.5),
+            1e-3f64
+        );
+    }
+
+    #[test]
+    fn neg() {
+        vec3_assert_approx_eq!(
+            Vec3::new(-3.0, 0.0, 1.0).neg(),
+            Vec3::new(3.0, 0.0, -1.0),
+            1e-3f64
+        );
+        vec3_assert_approx_eq!(
+            Vec3::new(-3.0, -5.0, -0.5).neg(),
+            Vec3::new(3.0, 5.0, 0.5),
+            1e-3f64
+        );
+    }
+
+    #[test]
+    fn length() {
+        assert_approx_eq!(Vec3::new(-3.0, 0.0, 1.0).length(), f64::sqrt(10.0), 1e-3f64);
+    }
+
+    #[test]
+    fn length_sq() {
+        assert_approx_eq!(Vec3::new(-3.0, 0.0, 1.0).length_sq(), 10.0, 1e-3f64);
+    }
+
+    #[test]
+    fn unitize() {
+        assert_approx_eq!(Vec3::new(-3.0, 0.0, 1.0).unitize().length(), 1.0, 1e-3f64);
+    }
+
+    #[test]
+    fn reflect() {
+        let dir = Vec3::new(-3.0, 0.0, 1.0);
+        vec3_assert_approx_eq!(dir.reflect(-dir.unitize()), -dir, 1e-3f64);
+        let normal = Vec3::new(0.0, 0.0, 1.0).unitize();
+        vec3_assert_approx_eq!(dir.reflect(normal), Vec3::new(-3.0, 0.0, -1.0), 1e-3f64);
+    }
+
+    #[test]
+    fn refract() {
+        let mut incidence = Vec3::new(-3.0, 0.5, 1.0).unitize();
+        let mut normal = Vec3::new(1.0, 1.0, 0.0).unitize();
+        let mut refraction = incidence.refract(normal, 1.0).unwrap();
+        vec3_assert_approx_eq!(refraction, incidence, 1e-3f64);
+
+        incidence = Vec3::new(-1.0, 0.0, 0.0).unitize();
+        normal = Vec3::new(1.0, 0.0, 0.0);
+        refraction = incidence.refract(normal, 2.0).unwrap();
+        vec3_assert_approx_eq!(refraction, incidence, 1e-3f64);
+
+        let incidence_angle = 30.0f64.to_radians();
+        let expected_angle = 22.1;
+        incidence = Vec3::new(incidence_angle.cos(), incidence_angle.sin(), 0.0);
+        normal = Vec3::new(1.0, 0.0, 0.0);
+        refraction = incidence.refract(normal, 1.0 / 1.33).unwrap();
+        let refracted_angle = PI - f64::atan2(refraction.y, refraction.x);
+        assert_approx_eq!(refracted_angle.to_degrees(), expected_angle, 1e-1f64);
+    }
 }
