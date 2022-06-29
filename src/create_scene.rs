@@ -5,7 +5,8 @@ use crate::material::metal::Metal;
 use crate::shape::hittable::Hittable;
 use crate::shape::sphere::Sphere;
 use crate::vec3::Vec3;
-use rand::{thread_rng, Rng};
+use rand::{Rng, SeedableRng};
+use rand_pcg::Pcg64Mcg;
 
 #[allow(dead_code)]
 pub fn create_5_sphere_scene(width: f64, height: f64) -> (Camera, Vec<Box<dyn Hittable>>) {
@@ -82,7 +83,7 @@ pub fn create_book_1_final_scene(width: f64, height: f64) -> (Camera, Vec<Box<dy
     );
 
     let mut objects: Vec<Box<dyn Hittable>> = vec![];
-    let mut rng = thread_rng();
+    let mut rng = Pcg64Mcg::seed_from_u64(10);
     let origin = Vec3::origin();
 
     objects.push(Box::new(Sphere::new(
