@@ -16,8 +16,7 @@ impl Scatterable for Dielectric {
             (1.0 / self.index_of_refraction, record.normal)
         };
 
-        let unit_direction = ray.direction.unitize();
-        let cos_theta = -Vec3::dot(unit_direction, normal);
+        let cos_theta = -Vec3::dot(ray.direction, normal);
 
         let scattered = if schlick(cos_theta, ior_ratio) > rand::thread_rng().gen::<f64>() {
             Vec3::reflect(&ray.direction, normal)
