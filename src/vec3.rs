@@ -1,6 +1,8 @@
 use rand::Rng;
+use std::array::IntoIter;
 use std::{
     f64::consts::TAU,
+    iter::IntoIterator,
     ops::{
         Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Range, Sub, SubAssign,
     },
@@ -111,6 +113,15 @@ impl Vec3 {
             y: r * phi.sin(),
             z,
         }
+    }
+}
+
+impl IntoIterator for Vec3 {
+    type Item = f64;
+    type IntoIter = IntoIter<f64, 3>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIterator::into_iter([self.x, self.y, self.z])
     }
 }
 
@@ -373,6 +384,12 @@ mod tests {
         assert!(Vec3::new(f64::NAN, 0.2, 1.0).has_nan());
         assert!(Vec3::new(f64::NAN, f64::NAN, 1.0).has_nan());
         assert!(Vec3::new(f64::NAN, f64::NAN, f64::NAN).has_nan());
+    }
+
+    #[test]
+    fn into_iter() {
+        let v: Vec<f64> = Vec3::new(-1.0, 0.0, 1.0).into_iter().collect();
+        assert!(v == [-1.0, 0.0, 1.0]);
     }
 
     #[test]
