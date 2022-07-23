@@ -13,6 +13,13 @@ pub struct AxisAlignedBoundingBox {
 }
 
 impl AxisAlignedBoundingBox {
+    pub fn null_box() -> AxisAlignedBoundingBox {
+        AxisAlignedBoundingBox {
+            min: Vec3::new(INFINITY, INFINITY, INFINITY),
+            max: Vec3::new(NEG_INFINITY, NEG_INFINITY, NEG_INFINITY),
+        }
+    }
+
     pub fn hit(&self, ray: &Ray, t_range: Range<f64>) -> bool {
         let (mut t_min, mut t_max) = (t_range.start, t_range.end);
         for i in 0..3 {
@@ -31,6 +38,55 @@ impl AxisAlignedBoundingBox {
             }
         }
         true
+    }
+
+    pub fn center(&self) -> Vec3 {
+        (self.min + self.max) / 2.0
+    }
+
+    pub fn offset(&self, point: Vec3) -> Vec3 {
+        let mut o = point - self.min;
+        for axis in 0..=2 {
+            if self.max[axis] > self.min[axis] {
+                o[axis] /= self.max[axis] - self.min[axis]
+            }
+        }
+        o
+    }
+
+    pub fn union_point(&self, point: Vec3) -> AxisAlignedBoundingBox {
+        AxisAlignedBoundingBox {
+            min: Vec3::new(
+                f64::min(self.min.x, point.x),
+                f64::min(self.min.y, point.y),
+                f64::min(self.min.z, point.z),
+            ),
+            max: Vec3::new(
+                f64::max(self.max.x, point.x),
+                f64::max(self.max.y, point.y),
+                f64::max(self.max.z, point.z),
+            ),
+        }
+    }
+
+    pub fn union_box(&self, other: AxisAlignedBoundingBox) -> AxisAlignedBoundingBox {
+        AxisAlignedBoundingBox {
+            min: Vec3::new(
+                f64::min(self.min.x, other.min.x),
+                f64::min(self.min.y, other.min.y),
+                f64::min(self.min.z, other.min.z),
+            ),
+            max: Vec3::new(
+                f64::max(self.max.x, other.max.x),
+                f64::max(self.max.y, other.max.y),
+                f64::max(self.max.z, other.max.z),
+            ),
+        }
+    }
+
+    pub fn surface_area(&self) -> f64 {
+        let d = self.max - self.min;
+        2.0 * (d.x * d.y + d.x * d.z + d.y * d.z)
     }
 
     pub fn from_boxes<T>(bounding_boxes: T) -> AxisAlignedBoundingBox
