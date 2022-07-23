@@ -65,10 +65,18 @@ fn color<T: Hittable>(ray: &Ray, scene: &T, depth: i32) -> Vec3 {
 
 fn to_srgb_bytes(v: Vec3) -> [u8; 3] {
     [
-        (v.x.sqrt() * 255.99) as u8,
-        (v.y.sqrt() * 255.99) as u8,
-        (v.z.sqrt() * 255.99) as u8,
+        (linear_srgb_transfer_function(v.x) * 255.99) as u8,
+        (linear_srgb_transfer_function(v.y) * 255.99) as u8,
+        (linear_srgb_transfer_function(v.z) * 255.99) as u8,
     ]
+}
+
+fn linear_srgb_transfer_function(linear: f64) -> f64 {
+    if linear < 0.0031308 {
+        linear * 12.92
+    } else {
+        1.055 * linear.powf(1.0 / 2.4) - 0.055
+    }
 }
 
 fn save_png(path: &Path, size: (u32, u32), buffer: &[u8]) {
