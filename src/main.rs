@@ -5,6 +5,7 @@ use std::f64::INFINITY;
 use std::path::Path;
 use std::time::Instant;
 
+use rayon::prelude::*;
 use raytrace_rust::bvh::bvh::Bvh;
 use raytrace_rust::create_scene::create_book_1_final_scene;
 use raytrace_rust::ray::Ray;
@@ -14,34 +15,41 @@ use raytrace_rust::vec3::Vec3;
 fn main() {
     let start = Instant::now();
     let size = (200, 100);
-    let buffer = render(size.0, size.1);
+    let samples = 100;
+    let buffer = render(size.0, size.1, samples);
     let duration = start.elapsed();
     println!("Time: {}", duration.as_secs_f64());
     let path = Path::new("./renders/img.png");
     save_png(path, size, &buffer);
 }
 
-fn render(width: u32, height: u32) -> Vec<u8> {
-    let mut buffer = Vec::with_capacity(width as usize * height as usize * 3);
-
-    let ns = 100;
+fn render(width: u32, height: u32, samples_per_pixel: u32) -> Vec<u8> {
     let (camera, world) = create_book_1_final_scene(width as f64, height as f64);
     let bvh = Bvh::new(world);
 
-    let mut rng = rand::thread_rng();
-    for j in (0..height).rev() {
-        for i in 0..width {
+    let w = width as f64;
+    let h = height as f64;
+    let s = samples_per_pixel as f64;
+
+    let pixel_iter = (0..height).into_par_iter().rev().flat_map(|j| {
+        (0..width)
+            .into_par_iter()
+            .map(move |i| (i as f64, j as f64))
+    });
+
+    pixel_iter
+        .flat_map(|(i, j)| {
+            let mut rng = rand::thread_rng();
             let mut col = Vec3::origin();
-            for _ in 0..ns {
-                let u = (i as f64 + rng.gen::<f64>()) / width as f64;
-                let v = (j as f64 + rng.gen::<f64>()) / height as f64;
+            for _ in 0..samples_per_pixel {
+                let u = (i + rng.gen::<f64>()) / w;
+                let v = (j + rng.gen::<f64>()) / h;
                 let r = camera.get_ray((u, v));
-                col += color(&r, &bvh, 0) * 1.0 / (ns as f64);
+                col += color(&r, &bvh, 0) * 1.0 / s;
             }
-            buffer.extend_from_slice(&to_srgb_bytes(col));
-        }
-    }
-    buffer
+            to_srgb_bytes(col)
+        })
+        .collect()
 }
 
 fn color<T: Hittable>(ray: &Ray, scene: &T, depth: i32) -> Vec3 {
