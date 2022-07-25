@@ -1,6 +1,6 @@
 use super::hittable::{HitRecord, Hittable};
 use crate::bvh::aabb::AxisAlignedBoundingBox;
-use crate::material::scatterable::Scatterable;
+use crate::material::scatterable::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use std::ops::Range;
@@ -9,11 +9,11 @@ use std::ops::Range;
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
-    pub material: Box<dyn Scatterable>,
+    pub material: Material,
 }
 
 impl Sphere {
-    pub fn new(center: Vec3, radius: f64, material: Box<dyn Scatterable>) -> Sphere {
+    pub fn new(center: Vec3, radius: f64, material: Material) -> Sphere {
         Sphere {
             center,
             radius,
@@ -47,7 +47,7 @@ impl Hittable for Sphere {
             t,
             point,
             normal,
-            material: &*self.material,
+            material: &self.material,
         })
     }
 

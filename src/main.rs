@@ -1,4 +1,5 @@
 use rand::Rng;
+use raytrace_rust::material::scatterable::Scatterable;
 use raytrace_rust::shape::hittable::Hittable;
 use std::f64::INFINITY;
 use std::path::Path;

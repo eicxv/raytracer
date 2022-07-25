@@ -1,17 +1,27 @@
+use super::sphere::Sphere;
 use crate::{
-    bvh::aabb::AxisAlignedBoundingBox, material::scatterable::Scatterable, ray::Ray, vec3::Vec3,
+    bvh::aabb::AxisAlignedBoundingBox, material::scatterable::Material, ray::Ray, vec3::Vec3,
 };
+use enum_dispatch::enum_dispatch;
 use std::ops::Range;
 
 pub struct HitRecord<'a> {
     pub t: f64,
     pub point: Vec3,
     pub normal: Vec3,
-    pub material: &'a dyn Scatterable,
+    pub material: &'a Material,
 }
+
+#[enum_dispatch(Shape)]
 pub trait Hittable: std::fmt::Debug {
     fn hit(&self, ray: &Ray, t_range: Range<f64>) -> Option<HitRecord>;
     fn bounding_box(&self) -> AxisAlignedBoundingBox;
+}
+
+#[enum_dispatch]
+#[derive(Debug)]
+pub enum Shape {
+    Sphere,
 }
 
 impl<T> Hittable for &[T]

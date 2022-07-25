@@ -1,7 +1,7 @@
 use super::aabb::AxisAlignedBoundingBox;
 use crate::{
     ray::Ray,
-    shape::hittable::{HitRecord, Hittable},
+    shape::hittable::{HitRecord, Hittable, Shape},
 };
 use rand::Rng;
 use std::ops::Range;
@@ -15,11 +15,11 @@ pub struct Bvh {
 #[derive(Debug)]
 pub enum BvhContents {
     Node { left: Box<Bvh>, right: Box<Bvh> },
-    Leaf(Box<dyn Hittable>),
+    Leaf(Shape),
 }
 
 impl Bvh {
-    pub fn new(mut hittables: Vec<Box<dyn Hittable>>) -> Bvh {
+    pub fn new(mut hittables: Vec<Shape>) -> Bvh {
         let axis: usize = rand::thread_rng().gen_range(0..=2);
         hittables.sort_unstable_by(|a, b| {
             a.bounding_box().min[axis]
