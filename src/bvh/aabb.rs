@@ -86,7 +86,7 @@ impl AxisAlignedBoundingBox {
 
     pub fn surface_area(&self) -> f64 {
         let d = self.max - self.min;
-        2.0 * (d.x * d.y + d.x * d.z + d.y * d.z)
+        f64::max(2.0 * (d.x * d.y + d.x * d.z + d.y * d.z), 0.0)
     }
 
     pub fn from_boxes<T>(bounding_boxes: T) -> AxisAlignedBoundingBox

@@ -6,7 +6,8 @@ use std::path::Path;
 use std::time::Instant;
 
 use rayon::prelude::*;
-use raytrace_rust::bvh::bvh::Bvh;
+use raytrace_rust::bvh::bvh_sah::split_method::SurfaceArea;
+use raytrace_rust::bvh::bvh_sah::BvhBuild;
 use raytrace_rust::create_scene::create_book_1_final_scene;
 use raytrace_rust::ray::Ray;
 use raytrace_rust::utility::lerp;
@@ -14,7 +15,7 @@ use raytrace_rust::vec3::Vec3;
 
 fn main() {
     let start = Instant::now();
-    let size = (200, 100);
+    let size = (400, 200);
     let samples = 100;
     let buffer = render(size.0, size.1, samples);
     let duration = start.elapsed();
@@ -24,8 +25,8 @@ fn main() {
 }
 
 fn render(width: u32, height: u32, samples_per_pixel: u32) -> Vec<u8> {
-    let (camera, world) = create_book_1_final_scene(width as f64, height as f64);
-    let bvh = Bvh::new(world);
+    let (camera, mut world) = create_book_1_final_scene(width as f64, height as f64);
+    let bvh = BvhBuild::build(&mut world, SurfaceArea);
 
     let w = width as f64;
     let h = height as f64;
