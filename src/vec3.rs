@@ -1,5 +1,6 @@
 use rand::Rng;
 use std::array::IntoIter;
+use std::cmp::Ordering;
 use std::{
     f64::consts::TAU,
     iter::IntoIterator,
@@ -74,6 +75,14 @@ impl Vec3 {
         debug_assert_ne!(len, 0.0);
 
         self / len
+    }
+
+    pub fn max_dim(self) -> usize {
+        self.into_iter()
+            .enumerate()
+            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Ordering::Equal))
+            .map(|(index, _)| index)
+            .unwrap()
     }
 
     pub fn reflect(&self, normal: Vec3) -> Vec3 {

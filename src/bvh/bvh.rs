@@ -4,7 +4,6 @@ use crate::{
     ray::Ray,
     shape::hittable::{HitRecord, Hittable, Shape},
 };
-use std::cmp::Ordering;
 use std::ops::Range;
 
 #[derive(Debug)]
@@ -184,13 +183,7 @@ fn select_axis(primitives: &[Shape]) -> (usize, AxisAlignedBoundingBox) {
         .fold(AxisAlignedBoundingBox::null_box(), |acc, prim| {
             acc.union_point(prim.bounding_box().center())
         });
-
-    let axis = (bounds.max - bounds.min)
-        .into_iter()
-        .enumerate()
-        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Ordering::Equal))
-        .map(|(index, _)| index)
-        .unwrap();
+    let axis = (bounds.max - bounds.min).max_dim();
 
     (axis, bounds)
 }
