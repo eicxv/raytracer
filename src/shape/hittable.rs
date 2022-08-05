@@ -1,4 +1,5 @@
 use super::sphere::Sphere;
+use super::triangle_mesh::Triangle;
 use crate::{
     bvh::aabb::AxisAlignedBoundingBox, material::scatterable::Material, ray::Ray, vec3::Vec3,
 };
@@ -20,8 +21,9 @@ pub trait Hittable: std::fmt::Debug {
 
 #[enum_dispatch]
 #[derive(Debug)]
-pub enum Shape {
-    Sphere,
+pub enum Shape<'a, 'b> {
+    Sph(Sphere),
+    Triangle(Triangle<'a, 'b>),
 }
 
 impl<T> Hittable for &[T]

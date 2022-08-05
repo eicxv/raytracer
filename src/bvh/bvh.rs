@@ -18,7 +18,7 @@ pub enum BvhContents<'a> {
         left: Box<Bvh<'a>>,
         right: Box<Bvh<'a>>,
     },
-    Leaf(&'a [Shape]),
+    Leaf(&'a [Shape<'a, 'a>]),
 }
 
 pub mod split_method {
@@ -31,19 +31,19 @@ pub mod split_method {
     use partition::partition;
     use std::cmp::Ordering;
     pub trait Split {
-        fn split<'a>(
+        fn split<'a, 'b, 'c>(
             &self,
-            primitives: &'a mut [Shape],
-        ) -> (&'a mut [Shape], Option<&'a mut [Shape]>);
+            primitives: &'a mut [Shape<'b, 'c>],
+        ) -> (&'a mut [Shape<'b, 'c>], Option<&'a mut [Shape<'b, 'c>]>);
     }
 
     #[derive(Debug, Copy, Clone)]
     pub struct Equal;
     impl Split for Equal {
-        fn split<'a>(
+        fn split<'a, 'b, 'c>(
             &self,
-            primitives: &'a mut [Shape],
-        ) -> (&'a mut [Shape], Option<&'a mut [Shape]>) {
+            primitives: &'a mut [Shape<'b, 'c>],
+        ) -> (&'a mut [Shape<'b, 'c>], Option<&'a mut [Shape<'b, 'c>]>) {
             if primitives.len() < 3 {
                 return (primitives, None);
             }
@@ -63,10 +63,10 @@ pub mod split_method {
     #[derive(Debug, Copy, Clone)]
     pub struct Middle;
     impl Split for Middle {
-        fn split<'a>(
+        fn split<'a, 'b, 'c>(
             &self,
-            primitives: &'a mut [Shape],
-        ) -> (&'a mut [Shape], Option<&'a mut [Shape]>) {
+            primitives: &'a mut [Shape<'b, 'c>],
+        ) -> (&'a mut [Shape<'b, 'c>], Option<&'a mut [Shape<'b, 'c>]>) {
             if primitives.len() < 3 {
                 return (primitives, None);
             }
@@ -108,10 +108,10 @@ pub mod split_method {
     }
 
     impl Split for SurfaceArea {
-        fn split<'a>(
+        fn split<'a, 'b, 'c>(
             &self,
-            primitives: &'a mut [Shape],
-        ) -> (&'a mut [Shape], Option<&'a mut [Shape]>) {
+            primitives: &'a mut [Shape<'b, 'c>],
+        ) -> (&'a mut [Shape<'b, 'c>], Option<&'a mut [Shape<'b, 'c>]>) {
             if primitives.len() <= 4 {
                 return Equal.split(primitives);
             }
@@ -188,8 +188,8 @@ fn select_axis(primitives: &[Shape]) -> (usize, AxisAlignedBoundingBox) {
     (axis, bounds)
 }
 
-impl<'a> Bvh<'a> {
-    pub fn build<T: Split + Copy>(primitives: &mut [Shape], method: T) -> Bvh {
+impl<'a, 'b, 'c> Bvh<'a> {
+    pub fn build<T: Split + Copy>(primitives: &'a mut [Shape<'b, 'c>], method: T) -> Bvh<'a> {
         assert!(primitives.len() > 0, "no primitives");
 
         let bounds = primitives.bounding_box();

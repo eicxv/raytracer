@@ -107,6 +107,15 @@ impl AxisAlignedBoundingBox {
             max: Vec3::new(max[0], max[1], max[2]),
         }
     }
+
+    pub fn from_points<T>(points: T) -> AxisAlignedBoundingBox
+    where
+        T: IntoIterator<Item = Vec3>,
+    {
+        points
+            .into_iter()
+            .fold(Self::null_box(), |acc, point| acc.union_point(point))
+    }
 }
 
 #[test]

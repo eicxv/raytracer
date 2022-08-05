@@ -8,7 +8,7 @@ pub trait Scatterable: std::fmt::Debug {
 }
 
 #[enum_dispatch]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Material {
     Lambertian,
     Dielectric,
