@@ -2,6 +2,7 @@ use rand::Rng;
 use std::array::IntoIter;
 use std::cmp::Ordering;
 use std::{
+    default::Default,
     f64::consts::TAU,
     iter::IntoIterator,
     ops::{
@@ -33,12 +34,8 @@ impl Vec3 {
         Vec3 { x, y, z }
     }
 
-    pub fn origin() -> Vec3 {
-        Vec3 {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-        }
+    pub fn origin() -> Self {
+        Vec3::default()
     }
 
     pub fn has_nan(&self) -> bool {
@@ -85,6 +82,10 @@ impl Vec3 {
             .unwrap()
     }
 
+    pub fn permute(self, x: usize, y: usize, z: usize) -> Self {
+        Vec3::new(self[x], self[y], self[z])
+    }
+
     pub fn reflect(&self, normal: Vec3) -> Vec3 {
         debug_assert_approx_eq!(normal.length(), 1.0, 1e-3f64);
 
@@ -121,6 +122,16 @@ impl Vec3 {
             x: r * phi.cos(),
             y: r * phi.sin(),
             z,
+        }
+    }
+}
+
+impl Default for Vec3 {
+    fn default() -> Self {
+        Self {
+            x: Default::default(),
+            y: Default::default(),
+            z: Default::default(),
         }
     }
 }
