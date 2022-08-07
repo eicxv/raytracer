@@ -1,33 +1,42 @@
 use rand::Rng;
+use rayon::prelude::*;
+use raytrace_rust::bvh::bvh::split_method::Middle;
+use raytrace_rust::bvh::bvh::Bvh;
+use raytrace_rust::camera::Camera;
+use raytrace_rust::create_scene::create_suzanne_scene;
 use raytrace_rust::material::scatterable::Scatterable;
+use raytrace_rust::ray::Ray;
 use raytrace_rust::shape::hittable::Hittable;
+use raytrace_rust::shape::hittable::Shape;
+use raytrace_rust::utility::lerp;
+use raytrace_rust::vec3::Vec3;
 use std::f64::INFINITY;
 use std::path::Path;
 use std::time::Instant;
 
-use rayon::prelude::*;
-use raytrace_rust::bvh::bvh::split_method::SurfaceArea;
-use raytrace_rust::bvh::bvh::Bvh;
-use raytrace_rust::create_scene::create_book_1_final_scene;
-use raytrace_rust::ray::Ray;
-use raytrace_rust::utility::lerp;
-use raytrace_rust::vec3::Vec3;
-
 fn main() {
     let start = Instant::now();
-    let size = (400, 200);
+    let resolution = (400, 200);
     let samples = 100;
-    let buffer = render(size.0, size.1, samples);
+
+    let (camera, mesh, mut world) = create_suzanne_scene(resolution.0 as f64, resolution.1 as f64);
+    world.extend(mesh.triangles().map(|tri| Shape::Triangle(tri)));
+    let bvh = Bvh::build(&mut world, Middle);
+
+    let buffer = render(resolution, samples, bvh, camera);
     let duration = start.elapsed();
     println!("Time: {}", duration.as_secs_f64());
     let path = Path::new("./renders/img.png");
-    save_png(path, size, &buffer);
+    save_png(path, resolution, &buffer);
 }
 
-fn render(width: u32, height: u32, samples_per_pixel: u32) -> Vec<u8> {
-    let (camera, mut world) = create_book_1_final_scene(width as f64, height as f64);
-    let bvh = Bvh::build(&mut world, SurfaceArea);
-
+fn render(
+    resolution: (u32, u32),
+    samples_per_pixel: u32,
+    scene: impl Hittable + std::marker::Sync,
+    camera: Camera,
+) -> Vec<u8> {
+    let (width, height) = resolution;
     let w = width as f64;
     let h = height as f64;
     let s = samples_per_pixel as f64;
@@ -46,7 +55,7 @@ fn render(width: u32, height: u32, samples_per_pixel: u32) -> Vec<u8> {
                 let u = (i + rng.gen::<f64>()) / w;
                 let v = (j + rng.gen::<f64>()) / h;
                 let r = camera.get_ray((u, v));
-                col += color(&r, &bvh, 0) * 1.0 / s;
+                col += color(&r, &scene, 0) * 1.0 / s;
             }
             to_srgb_bytes(col)
         })
