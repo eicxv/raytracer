@@ -43,7 +43,7 @@ impl<'a, 'b> Hittable for Triangle<'a, 'b> {
     fn hit(&self, ray: &Ray, t_range: Range<f64>) -> Option<HitRecord> {
         let v = self.get_vertices();
         let v0v1 = v[1] - v[0];
-        let v0v2 = v[1] - v[2];
+        let v0v2 = v[2] - v[0];
         let n = Vec3::cross(v0v1, v0v2);
         let n_dot_dir = n.dot(ray.direction);
         if n_dot_dir.abs() < 0.00001 {
@@ -66,7 +66,7 @@ impl<'a, 'b> Hittable for Triangle<'a, 'b> {
                 let edge = v1 - v0;
                 let vp = p - v0;
                 let c = edge.cross(vp);
-                n.dot(c) > 0.0
+                n.dot(c) < 0.0
             })
         {
             return None;
